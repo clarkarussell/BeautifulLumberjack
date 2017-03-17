@@ -3,29 +3,40 @@
 ##Author: Clark Russell
 ##Date Started: March 13, 2017
 
-from os import remove
-from time import sleep
-from picamera import PiCamera
+import io
+import picamera
+import cv2
+import numpy
 
-#Set camera options
-camera = PiCamera()
-camera.resolution = (1024, 768)
+#Create a memory stream so the photos don't need to be saved in a file
+stream = io.BytesIO()
 
-#Take a series of pictures every half second, convert each to grayscale
-#and save for processing.
+#Get the picture (low resolutio, so it should be fast)
+#Here you can also specify other parameters (like camera rotation)
+with picamera.PiCamera() as camera:
+    camera.resolution = (320, 240)
+    camera.capture(stream, format='jpeg')
 
-camera.start_preview()
-sleep (2) #gives the camera time to adjust to lighting conditions.
+#convert the picture into a numpy array
+buff = numpy.fromstring(stream.getvalue(), dtype=numpy.uint8)
 
-#Take a picture every half second, process it, identify the face
-#log the result, and delete the picture.
+#Create an OpenCV image
+image = cv2.imdecode(buff, 1)
 
-for i in range (5): #1209600 is the humber of half seconds in a week.
-    sleep(0.5)
-    #camera.capture('liveframe/foo.jpg')
-    camera.capture('liveframe/foo'+str(i)+'.jpg')
-    #insert face recognition code here
-    #insert logger code here
-    remove('liveframe/foo'+str(i)+'.jpg')
-camera.stop_preview()    
-    
+#Load a cascade file for detecting faces
+face_cascade = cv2.CascadeClassifier('/home/pi/github/BeautifulLumberjack/haarcascade_frontalface_default.xml')
+
+#Convert to grayscale
+gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+
+#Look for faces in the image using the loaded cascade file
+faces = face_cascade.detectMultiScale(gray, 1.1, 5)
+
+print("Found "+str(len(faces))+" face(s)")
+
+#Draw a rectange around every found face
+for(x,y,w,h) in faces:
+    cv2.rectangle(image,(x,y),(x+w,y+h),(255,255,0),2)
+
+#Save the result image
+    cv2.imwrite('result.jpg',image)
