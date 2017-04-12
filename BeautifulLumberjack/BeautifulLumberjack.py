@@ -13,7 +13,7 @@ import time
 start_time = time.time()
 
 #Define end time as 1 week from now (604,800 seconds)
-end_time = start_time + 60#4800
+end_time = start_time + 604800
 
 #This loop lasts 1 minute.
 while time.time() < end_time:
